@@ -7,8 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, GripVertical, Copy, ExternalLink, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Copy, ExternalLink, Star, ThumbsUp, ThumbsDown, TrendingUp, Eye, AlertCircle, Mail } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { questionSuggestions, niches } from '@/lib/questionSuggestions';
+import { api } from '@/lib/api';
+import { calculateCampaignMetrics } from '@/lib/dashboardMetrics';
 
 export default function CampaignDetail() {
   const { campaignId } = useParams();
@@ -16,6 +19,8 @@ export default function CampaignDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('resumo');
   const [selectedNiche, setSelectedNiche] = useState('');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [participants, setParticipants] = useState([]);
 
   useEffect(() => {
     // Simulação de dados da campanha
@@ -65,6 +70,15 @@ export default function CampaignDetail() {
 
     setTimeout(() => {
       setCampaign(mockCampaign);
+      
+      // Buscar respostas da campanha
+      const responses = api.getResponses(campaignId);
+      setParticipants(responses);
+      
+      // Calcular métricas da campanha
+      const metrics = calculateCampaignMetrics(campaignId, responses, mockCampaign);
+      setDashboardData(metrics);
+      
       setLoading(false);
     }, 500);
   }, [campaignId]);
@@ -247,25 +261,188 @@ export default function CampaignDetail() {
         </TabsList>
 
         <TabsContent value="resumo" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumo da Campanha</CardTitle>
-              <CardDescription>Visão geral das métricas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Métricas e gráficos da campanha aparecerão aqui.</p>
-            </CardContent>
-          </Card>
+          {/* Cards de Métricas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Nota NPS</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{dashboardData?.nps || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(dashboardData?.nps || 0) >= 50 ? 'Excelente' : (dashboardData?.nps || 0) >= 0 ? 'Bom' : 'Precisa melhorar'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de Respostas</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{dashboardData?.responseRate.toFixed(1) || 0}%</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {participants.length} respostas
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de Abertura</CardTitle>
+                <Mail className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{dashboardData?.openRate.toFixed(1) || 0}%</div>
+                <p className="text-xs text-muted-foreground mt-1">Emails abertos</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de Erro</CardTitle>
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{dashboardData?.errorRate.toFixed(1) || 0}%</div>
+                <p className="text-xs text-muted-foreground mt-1">Emails com erro</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Gráficos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Gráfico de Rosca - Porcentagem NPS */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Porcentagem NPS</CardTitle>
+                <CardDescription>Distribuição de Promotores, Passivos e Detratores</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData && dashboardData.npsPercentage ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={dashboardData.npsPercentage}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={(entry) => `${entry.category}: ${entry.value}%`}
+                      >
+                        {dashboardData.npsPercentage.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    Nenhum dado disponível
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Gráfico de Barras - Notas NPS */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Notas NPS</CardTitle>
+                <CardDescription>Distribuição de notas de 0 a 10</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardData && dashboardData.npsScores ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={dashboardData.npsScores}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="score" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#10b981" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    Nenhum dado disponível
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="participantes" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Participantes</CardTitle>
-              <CardDescription>Lista de participantes da pesquisa</CardDescription>
+              <CardDescription>Lista de participantes da pesquisa ({participants.length})</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Lista de participantes aparecerá aqui.</p>
+              {participants.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum participante ainda. Compartilhe o link da pesquisa com seus clientes!
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {participants.map((participant, index) => {
+                    const npsQuestion = campaign.questions.find(q => q.isMain);
+                    const score = npsQuestion ? participant.answers[npsQuestion.id] : null;
+                    let category = 'N/A';
+                    let categoryColor = 'bg-gray-100 text-gray-700 border-gray-200';
+                    
+                    if (score !== null && score !== undefined) {
+                      if (score >= 9) {
+                        category = 'Promotor';
+                        categoryColor = 'bg-green-100 text-green-700 border-green-200';
+                      } else if (score >= 7) {
+                        category = 'Passivo';
+                        categoryColor = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                      } else {
+                        category = 'Detrator';
+                        categoryColor = 'bg-red-100 text-red-700 border-red-200';
+                      }
+                    }
+                    
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <span className="text-green-700 font-semibold">
+                              {participant.customerName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium">{participant.customerName}</div>
+                            <div className="text-sm text-gray-500">{participant.customerPhone}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">
+                              {new Date(participant.submittedAt).toLocaleDateString('pt-BR')}
+                            </div>
+                            <div className="text-sm font-medium">Nota: {score !== null ? score : 'N/A'}</div>
+                          </div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-sm font-medium border ${categoryColor}`}
+                          >
+                            {category}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

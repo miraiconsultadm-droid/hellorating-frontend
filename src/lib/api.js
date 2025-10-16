@@ -223,5 +223,30 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  
+  // Responses
+  submitResponse: (data) => {
+    // Salvar no localStorage
+    const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+    responses.push(data);
+    localStorage.setItem('responses', JSON.stringify(responses));
+    
+    // Tentar enviar para o backend
+    return apiCall('/api/responses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }).catch(() => {
+      // Se falhar, apenas retornar sucesso (já salvou no localStorage)
+      return { success: true };
+    });
+  },
+  
+  getResponses: (campaignId = null) => {
+    const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+    if (campaignId) {
+      return responses.filter(r => r.campaignId === campaignId);
+    }
+    return responses;
+  },
 };
 
