@@ -87,12 +87,24 @@ export default function Survey() {
           if (shouldRedirect) {
             // Buscar o Place ID da empresa cadastrada
             const company = JSON.parse(localStorage.getItem('company') || '{}');
-            const placeId = company.placeId || campaign.googlePlaceId;
+            let placeId = company.placeId || campaign.googlePlaceId;
 
             if (placeId) {
-              setTimeout(() => {
-                window.location.href = `https://search.google.com/local/writereview?placeid=${placeId}`;
-              }, 2000);
+              // Limpar o Place ID de caracteres especiais e espaços
+              placeId = placeId.trim();
+              
+              // Validar formato do Place ID (deve começar com ChIJ ou similar)
+              if (placeId.length > 10 && /^[A-Za-z0-9_-]+$/.test(placeId)) {
+                setTimeout(() => {
+                  window.location.href = `https://search.google.com/local/writereview?placeid=${placeId}`;
+                }, 2000);
+              } else {
+                console.error('Place ID inválido:', placeId);
+                alert('Erro: Place ID da empresa está incorreto. Por favor, verifique o cadastro da empresa.');
+              }
+            } else {
+              console.error('Place ID não encontrado');
+              alert('Erro: Place ID da empresa não foi cadastrado.');
             }
           }
         }
