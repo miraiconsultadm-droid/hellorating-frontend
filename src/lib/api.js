@@ -10,8 +10,42 @@ const mockData = {
       mainMetric: 'NPS',
       redirectEnabled: true,
       redirectRule: 'promotores',
+      googlePlaceId: 'ChIJN1t_tDeuEmsRUsoyG83frY4',
       feedbackEnabled: false,
       feedbackText: '',
+      questions: [
+        {
+          id: 1,
+          type: 'like_dislike',
+          text: 'Com que frequência você utiliza os serviços da empresa?',
+          order: 1,
+        },
+        {
+          id: 2,
+          type: 'emotion_scale',
+          text: 'O site é fácil de usar e navegar?',
+          order: 2,
+        },
+        {
+          id: 3,
+          type: 'emotion',
+          text: 'O atendimento ao cliente é satisfatório?',
+          order: 3,
+        },
+        {
+          id: 4,
+          type: 'stars',
+          text: 'Você considera a variedade de produtos adequada às suas necessidades?',
+          order: 4,
+        },
+        {
+          id: 5,
+          type: 'nps',
+          text: 'Quanto você recomendaria a empresa para um amigo ou colega?',
+          order: 5,
+          isMain: true,
+        },
+      ],
     }
   ],
   questions: [

@@ -7,22 +7,18 @@ import { api } from '@/lib/api';
 
 export default function Survey() {
   const { surveyId } = useParams();
-  const [survey, setSurvey] = useState(null);
+  const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [customerName, setCustomerName] = useState('John Doe');
 
   useEffect(() => {
     const fetchSurvey = async () => {
       try {
         const data = await api.getSurvey(surveyId);
-        setSurvey({
-          id: surveyId,
-          title: data.campaign.name,
-          customerName: 'John Doe',
-          questions: data.questions,
-        });
+        setCampaign(data.campaign);
       } catch (error) {
         console.error('Error fetching survey:', error);
       } finally {
@@ -38,11 +34,17 @@ export default function Survey() {
   };
 
   const handleNext = () => {
-    if (currentQuestion < survey.questions.length - 1) {
+    if (currentQuestion < campaign.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       handleSubmit();
     }
+  };
+
+  const calculateNPSCategory = (score) => {
+    if (score >= 9) return 'promotor';
+    if (score >= 7) return 'passivo';
+    return 'detrator';
   };
 
   const handleSubmit = async () => {
@@ -51,10 +53,50 @@ export default function Survey() {
         email: 'customer@example.com',
         answers: answers,
       });
+      
       setSubmitted(true);
+
+      // Verificar se o redirecionamento está ativado
+      if (campaign.redirectEnabled && campaign.googlePlaceId) {
+        // Encontrar a pergunta principal (NPS)
+        const mainQuestion = campaign.questions.find(q => q.isMain && q.type === 'nps');
+        
+        if (mainQuestion && answers[mainQuestion.id] !== undefined) {
+          const npsScore = answers[mainQuestion.id];
+          const category = calculateNPSCategory(npsScore);
+          
+          // Verificar se deve redirecionar baseado na regra
+          let shouldRedirect = false;
+          
+          switch (campaign.redirectRule) {
+            case 'todos':
+              shouldRedirect = true;
+              break;
+            case 'promotores':
+              shouldRedirect = category === 'promotor';
+              break;
+            case 'passivos':
+              shouldRedirect = category === 'passivo';
+              break;
+            case 'detratores':
+              shouldRedirect = category === 'detrator';
+              break;
+            default:
+              shouldRedirect = false;
+          }
+          
+          // Redirecionar para o Google após 2 segundos
+          if (shouldRedirect) {
+            setTimeout(() => {
+              const googleReviewUrl = `https://search.google.com/local/writereview?placeid=${campaign.googlePlaceId}`;
+              window.location.href = googleReviewUrl;
+            }, 2000);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error submitting response:', error);
-      setSubmitted(true); // Still show success for demo
+      setSubmitted(true);
     }
   };
 
@@ -111,9 +153,17 @@ export default function Survey() {
         );
 
       case 'emotion_scale':
+        const emotionOptions = [
+          { value: 1, emoji: '😡', label: 'Muito insatisfeito' },
+          { value: 2, emoji: '😟', label: 'Insatisfeito' },
+          { value: 3, emoji: '😐', label: 'Neutro' },
+          { value: 4, emoji: '😊', label: 'Satisfeito' },
+          { value: 5, emoji: '😄', label: 'Muito satisfeito' },
+        ];
+        
         return (
           <div className="flex flex-wrap gap-4 justify-center">
-            {question.options.map((option) => (
+            {emotionOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleAnswer(question.id, option.value)}
@@ -131,9 +181,15 @@ export default function Survey() {
         );
 
       case 'emotion':
+        const simpleEmotions = [
+          { value: 1, emoji: '😞' },
+          { value: 2, emoji: '😐' },
+          { value: 3, emoji: '😊' },
+        ];
+        
         return (
           <div className="flex gap-6 justify-center">
-            {question.options.map((option) => (
+            {simpleEmotions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleAnswer(question.id, option.value)}
@@ -188,7 +244,7 @@ export default function Survey() {
     );
   }
 
-  if (!survey) {
+  if (!campaign) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <p className="text-muted-foreground">Pesquisa não encontrada</p>
@@ -199,7 +255,7 @@ export default function Survey() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
+        <Card className="max-w-md w-full border border-gray-200">
           <CardContent className="pt-6 text-center space-y-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
               <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,22 +266,27 @@ export default function Survey() {
             <p className="text-muted-foreground">
               Sua resposta foi registrada com sucesso. Agradecemos seu feedback!
             </p>
+            {campaign.redirectEnabled && campaign.googlePlaceId && (
+              <p className="text-sm text-gray-500">
+                Você será redirecionado para avaliar no Google em instantes...
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const question = survey.questions[currentQuestion];
+  const question = campaign.questions[currentQuestion];
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full">
+      <Card className="max-w-2xl w-full border border-gray-200">
         <CardContent className="pt-8 space-y-8">
           {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold">
-              Olá {survey.customerName}, obrigado por ser nosso cliente!
+              Olá {customerName}, obrigado por ser nosso cliente!
             </h1>
             <p className="text-muted-foreground">
               Gostaríamos de aperfeiçoar a sua experiência com os nossos serviços através deste
@@ -238,13 +299,13 @@ export default function Survey() {
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Progresso</span>
               <span>
-                {currentQuestion + 1} de {survey.questions.length}
+                {currentQuestion + 1} de {campaign.questions.length}
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentQuestion + 1) / survey.questions.length) * 100}%` }}
+                style={{ width: `${((currentQuestion + 1) / campaign.questions.length) * 100}%` }}
               />
             </div>
           </div>
@@ -261,9 +322,9 @@ export default function Survey() {
               onClick={handleNext}
               disabled={!answers[question.id]}
               size="lg"
-              className="px-8"
+              className="px-8 bg-green-500 hover:bg-green-600"
             >
-              {currentQuestion < survey.questions.length - 1 ? 'Próxima' : 'Enviar'}
+              {currentQuestion < campaign.questions.length - 1 ? 'Próxima' : 'Enviar'}
             </Button>
           </div>
         </CardContent>
