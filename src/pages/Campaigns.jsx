@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, ExternalLink, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { niches, questionSuggestions } from '@/lib/questionSuggestions';
@@ -12,9 +14,15 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [campaignName, setCampaignName] = useState('');
-  const [selectedNiche, setSelectedNiche] = useState('');
-  const [googlePlaceId, setGooglePlaceId] = useState('');
+  const [campaignData, setCampaignData] = useState({
+    name: '',
+    niche: '',
+    mainMetric: 'NPS',
+    redirectEnabled: false,
+    redirectRule: 'promotores',
+    feedbackEnabled: false,
+    feedbackText: 'Obrigado pelo seu feedback! Sua opinião é muito importante para nós.',
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,8 +41,15 @@ export default function Campaigns() {
   }, []);
 
   const handleCreateCampaign = async () => {
-    if (!campaignName.trim()) {
+    if (!campaignData.name.trim()) {
       alert('Por favor, insira um nome para a campanha');
+      return;
+    }
+
+    // Verificar se a empresa está cadastrada
+    const company = JSON.parse(localStorage.getItem('company') || '{}');
+    if (!company.name || !company.placeId) {
+      alert('Por favor, cadastre sua empresa antes de criar uma campanha. Clique em "Cadastrar Empresa" no cabeçalho.');
       return;
     }
 
@@ -42,8 +57,8 @@ export default function Campaigns() {
     const campaignId = Math.random().toString(36).substring(2, 15);
 
     // Obter perguntas sugeridas baseadas no nicho
-    const suggestedQuestions = selectedNiche && questionSuggestions[selectedNiche]
-      ? questionSuggestions[selectedNiche].map((q, index) => ({
+    const suggestedQuestions = campaignData.niche && questionSuggestions[campaignData.niche]
+      ? questionSuggestions[campaignData.niche].map((q, index) => ({
           ...q,
           id: Date.now() + index,
           order: index + 1,
@@ -52,14 +67,8 @@ export default function Campaigns() {
 
     const newCampaign = {
       id: campaignId,
-      name: campaignName,
-      mainMetric: 'NPS',
-      redirectEnabled: !!googlePlaceId,
-      redirectRule: 'promotores',
-      feedbackEnabled: false,
-      feedbackText: '',
-      googlePlaceId: googlePlaceId || '',
-      niche: selectedNiche || '',
+      ...campaignData,
+      googlePlaceId: company.placeId,
       questions: suggestedQuestions,
     };
 
@@ -72,9 +81,15 @@ export default function Campaigns() {
     setCampaigns([...campaigns, newCampaign]);
 
     // Limpar formulário e fechar modal
-    setCampaignName('');
-    setSelectedNiche('');
-    setGooglePlaceId('');
+    setCampaignData({
+      name: '',
+      niche: '',
+      mainMetric: 'NPS',
+      redirectEnabled: false,
+      redirectRule: 'promotores',
+      feedbackEnabled: false,
+      feedbackText: 'Obrigado pelo seu feedback! Sua opinião é muito importante para nós.',
+    });
     setShowModal(false);
 
     // Navegar para a campanha criada
@@ -84,56 +99,59 @@ export default function Campaigns() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+        <div className="text-gray-500">Carregando campanhas...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Campanhas</h1>
-          <p className="text-muted-foreground mt-1">Gerencie suas campanhas de pesquisa</p>
+          <h1 className="text-3xl font-bold text-gray-900">Campanhas</h1>
+          <p className="text-gray-600 mt-1">Gerencie suas campanhas de pesquisa</p>
         </div>
-        <Button 
-          onClick={() => setShowModal(true)}
-          className="gap-2 bg-green-500 hover:bg-green-600"
-        >
-          <Plus className="h-4 w-4" />
+        <Button onClick={() => setShowModal(true)} className="bg-green-600 hover:bg-green-700 text-white">
+          <Plus className="w-4 h-4 mr-2" />
           Nova Campanha
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {campaigns.map((campaign) => (
-          <Card key={campaign.id} className="hover:shadow-lg transition-shadow border border-gray-200">
+          <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                  <CardDescription className="mt-1">ID: {campaign.id}</CardDescription>
+                  <CardDescription className="text-sm mt-1">
+                    ID: {campaign.id}
+                  </CardDescription>
                 </div>
                 <Link to={`/campanhas/${campaign.id}`}>
-                  <Button variant="ghost" size="icon">
-                    <ExternalLink className="h-4 w-4" />
+                  <Button size="icon" variant="ghost" className="text-red-600">
+                    <ExternalLink className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Métrica Principal</span>
-                  <span className="font-semibold">{campaign.mainMetric || campaign.main_metric}</span>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Métrica Principal</span>
+                  <span className="font-medium">{campaign.mainMetric || 'NPS'}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Redirecionamento</span>
-                  <span className="font-semibold">{campaign.redirectEnabled || campaign.redirect_enabled ? 'Ativo' : 'Inativo'}</span>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Redirecionamento</span>
+                  <span className={campaign.redirectEnabled ? 'text-green-600' : 'text-gray-400'}>
+                    {campaign.redirectEnabled ? 'Ativo' : 'Inativo'}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Feedback</span>
-                  <span className="font-semibold">{campaign.feedbackEnabled || campaign.feedback_enabled ? 'Ativo' : 'Inativo'}</span>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Feedback</span>
+                  <span className={campaign.feedbackEnabled ? 'text-green-600' : 'text-gray-400'}>
+                    {campaign.feedbackEnabled ? 'Ativo' : 'Inativo'}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -141,42 +159,54 @@ export default function Campaigns() {
         ))}
       </div>
 
+      {campaigns.length === 0 && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <p className="text-gray-500 mb-4">Nenhuma campanha criada ainda</p>
+            <Button onClick={() => setShowModal(true)} className="bg-green-600 hover:bg-green-700 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Primeira Campanha
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Modal de Criação de Campanha */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Nova Campanha</h2>
-              <button 
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Nova Campanha</h2>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
               >
-                <X className="w-6 h-6" />
-              </button>
+                <X className="w-5 h-5" />
+              </Button>
             </div>
-            
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="campaign-name">Nome da Campanha *</Label>
+
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              {/* Nome da Campanha */}
+              <div>
+                <Label htmlFor="campaignName">Nome da Campanha *</Label>
                 <Input
-                  id="campaign-name"
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="Ex: Pesquisa de Satisfação 2024"
-                  className="w-full"
+                  id="campaignName"
+                  placeholder="Ex: Pesquisa de Satisfação 2025"
+                  value={campaignData.name}
+                  onChange={(e) => setCampaignData({ ...campaignData, name: e.target.value })}
+                  className="mt-1"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="niche">Nicho da Empresa (Opcional)</Label>
-                <p className="text-sm text-gray-500 mb-2">
-                  Selecione o nicho para receber sugestões de perguntas personalizadas
-                </p>
+              {/* Nicho */}
+              <div>
+                <Label htmlFor="niche">Nicho da Empresa</Label>
                 <select
                   id="niche"
-                  value={selectedNiche}
-                  onChange={(e) => setSelectedNiche(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md bg-white"
+                  value={campaignData.niche}
+                  onChange={(e) => setCampaignData({ ...campaignData, niche: e.target.value })}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background mt-1"
                 >
                   <option value="">Selecione um nicho (opcional)</option>
                   {niches.map((niche) => (
@@ -185,63 +215,110 @@ export default function Campaigns() {
                     </option>
                   ))}
                 </select>
-                {selectedNiche && (
-                  <p className="text-sm text-green-600 mt-2">
-                    ✓ {questionSuggestions[selectedNiche]?.length || 0} perguntas serão sugeridas automaticamente
+                {campaignData.niche && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ {questionSuggestions[campaignData.niche]?.length || 0} perguntas serão sugeridas automaticamente
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="place-id">Google Place ID (Opcional)</Label>
-                <p className="text-sm text-gray-500 mb-2">
-                  Para redirecionar clientes para avaliar no Google, insira o Place ID da sua empresa.
-                  <a 
-                    href="https://developers.google.com/maps/documentation/places/web-service/place-id" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline ml-1"
-                  >
-                    Como encontrar meu Place ID?
-                  </a>
-                </p>
-                <Input
-                  id="place-id"
-                  value={googlePlaceId}
-                  onChange={(e) => setGooglePlaceId(e.target.value)}
-                  placeholder="Ex: ChIJN1t_tDeuEmsRUsoyG83frY4"
-                  className="w-full"
-                />
-                {googlePlaceId && (
-                  <p className="text-sm text-green-600 mt-2">
-                    ✓ Redirecionamento para Google será ativado automaticamente
-                  </p>
+              {/* Métrica Principal */}
+              <div>
+                <Label htmlFor="mainMetric">Métrica Principal</Label>
+                <select
+                  id="mainMetric"
+                  value={campaignData.mainMetric}
+                  onChange={(e) => setCampaignData({ ...campaignData, mainMetric: e.target.value })}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background mt-1"
+                >
+                  <option value="NPS">NPS (Net Promoter Score)</option>
+                  <option value="CSAT">CSAT (Customer Satisfaction)</option>
+                  <option value="CES">CES (Customer Effort Score)</option>
+                </select>
+              </div>
+
+              {/* Redirecionamento para Google */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <Label htmlFor="redirectEnabled">Redirecionamento para Google</Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Redirecionar clientes para deixarem avaliação no Google
+                    </p>
+                  </div>
+                  <Switch
+                    id="redirectEnabled"
+                    checked={campaignData.redirectEnabled}
+                    onCheckedChange={(checked) =>
+                      setCampaignData({ ...campaignData, redirectEnabled: checked })
+                    }
+                  />
+                </div>
+
+                {campaignData.redirectEnabled && (
+                  <div>
+                    <Label htmlFor="redirectRule">Quem deve ser redirecionado?</Label>
+                    <select
+                      id="redirectRule"
+                      value={campaignData.redirectRule}
+                      onChange={(e) => setCampaignData({ ...campaignData, redirectRule: e.target.value })}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background mt-1"
+                    >
+                      <option value="promotores">Apenas Promotores (9-10)</option>
+                      <option value="passivos">Apenas Passivos (7-8)</option>
+                      <option value="detratores">Apenas Detratores (0-6)</option>
+                      <option value="todos">Todos os respondentes</option>
+                    </select>
+                  </div>
                 )}
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-2">💡 Dica: Como encontrar seu Google Place ID</h3>
-                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                  <li>Acesse <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" className="underline">Google Maps</a></li>
-                  <li>Busque pelo nome da sua empresa</li>
-                  <li>Clique no perfil da empresa</li>
-                  <li>Copie a URL da barra de endereços</li>
-                  <li>O Place ID está após "place/" ou "data=" na URL</li>
-                </ol>
+              {/* Mensagem de Feedback */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <Label htmlFor="feedbackEnabled">Mensagem de Feedback</Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Exibir mensagem personalizada após a pesquisa
+                    </p>
+                  </div>
+                  <Switch
+                    id="feedbackEnabled"
+                    checked={campaignData.feedbackEnabled}
+                    onCheckedChange={(checked) =>
+                      setCampaignData({ ...campaignData, feedbackEnabled: checked })
+                    }
+                  />
+                </div>
+
+                {campaignData.feedbackEnabled && (
+                  <div>
+                    <Label htmlFor="feedbackText">Texto da Mensagem</Label>
+                    <Textarea
+                      id="feedbackText"
+                      placeholder="Digite a mensagem que será exibida ao cliente"
+                      value={campaignData.feedbackText}
+                      onChange={(e) => setCampaignData({ ...campaignData, feedbackText: e.target.value })}
+                      className="mt-1"
+                      rows={3}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <Button 
-                variant="outline" 
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
                 onClick={() => setShowModal(false)}
+                className="flex-1"
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={handleCreateCampaign}
-                className="bg-green-500 hover:bg-green-600"
-                disabled={!campaignName.trim()}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                disabled={!campaignData.name.trim()}
               >
                 Criar Campanha
               </Button>
