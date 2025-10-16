@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Copy, ExternalLink } from 'lucide-react';
 
 export default function CampaignDetail() {
   const { campaignId } = useParams();
@@ -227,6 +227,37 @@ export default function CampaignDetail() {
               <CardDescription>Configure detalhes de sua campanha</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Link da Campanha</Label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Compartilhe este link com seus clientes para que eles possam responder à pesquisa
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={`${window.location.origin}/survey/${campaign.id}`}
+                    readOnly
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/survey/${campaign.id}`);
+                      alert('Link copiado para a área de transferência!');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => window.open(`/survey/${campaign.id}`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Nome da campanha</Label>
@@ -267,8 +298,28 @@ export default function CampaignDetail() {
                 />
               </div>
               {campaign.redirectEnabled && (
-                <div className="space-y-2">
-                  <Label>Regra para redirecionamento</Label>
+                <>
+                  <div className="space-y-2">
+                    <Label>Google Place ID</Label>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Insira o Place ID da sua empresa no Google para redirecionar clientes.
+                      <a 
+                        href="https://developers.google.com/maps/documentation/places/web-service/place-id" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline ml-1"
+                      >
+                        Como encontrar?
+                      </a>
+                    </p>
+                    <Input
+                      value={campaign.googlePlaceId || ''}
+                      onChange={(e) => setCampaign({ ...campaign, googlePlaceId: e.target.value })}
+                      placeholder="Ex: ChIJN1t_tDeuEmsRUsoyG83frY4"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Regra para redirecionamento</Label>
                   <select
                     value={campaign.redirectRule}
                     onChange={(e) => setCampaign({ ...campaign, redirectRule: e.target.value })}
@@ -279,7 +330,8 @@ export default function CampaignDetail() {
                     <option value="passivos">Passivos</option>
                     <option value="detratores">Detratores</option>
                   </select>
-                </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

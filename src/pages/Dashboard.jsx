@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, Eye, AlertCircle, Mail, Plus, Trash2, GripVertical } from 'lucide-react';
+import { TrendingUp, Eye, AlertCircle, Mail, Plus, Trash2, GripVertical, Copy, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -433,6 +433,37 @@ export default function Dashboard() {
               </div>
               
               <div className="space-y-2">
+                <Label>Link da Campanha</Label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Compartilhe este link com seus clientes para que eles possam responder à pesquisa
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={`${window.location.origin}/survey/${campaign.id}`}
+                    readOnly
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/survey/${campaign.id}`);
+                      alert('Link copiado para a área de transferência!');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => window.open(`/survey/${campaign.id}`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
                 <Label>Forma de envio</Label>
                 <div className="flex gap-3">
                   <button className="flex items-center gap-2 px-4 py-2 border-2 border-green-500 bg-green-50 rounded-lg">
@@ -473,8 +504,28 @@ export default function Dashboard() {
                 />
               </div>
               {campaign.redirectEnabled && (
-                <div className="space-y-2">
-                  <Label>Regra para redirecionamento</Label>
+                <>
+                  <div className="space-y-2">
+                    <Label>Google Place ID</Label>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Insira o Place ID da sua empresa no Google para redirecionar clientes.
+                      <a 
+                        href="https://developers.google.com/maps/documentation/places/web-service/place-id" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline ml-1"
+                      >
+                        Como encontrar?
+                      </a>
+                    </p>
+                    <Input
+                      value={campaign.googlePlaceId || ''}
+                      onChange={(e) => setCampaign({ ...campaign, googlePlaceId: e.target.value })}
+                      placeholder="Ex: ChIJN1t_tDeuEmsRUsoyG83frY4"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Regra para redirecionamento</Label>
                   <select
                     value={campaign.redirectRule}
                     onChange={(e) => setCampaign({ ...campaign, redirectRule: e.target.value })}
@@ -485,7 +536,8 @@ export default function Dashboard() {
                     <option value="passivos">Apenas Passivos</option>
                     <option value="detratores">Apenas Detratores</option>
                   </select>
-                </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
