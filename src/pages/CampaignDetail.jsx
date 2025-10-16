@@ -140,6 +140,48 @@ export default function CampaignDetail() {
     });
   };
 
+  const moveQuestionUp = (questionId) => {
+    const index = campaign.questions.findIndex((q) => q.id === questionId);
+    if (index > 0) {
+      const newQuestions = [...campaign.questions];
+      [newQuestions[index - 1], newQuestions[index]] = [newQuestions[index], newQuestions[index - 1]];
+      // Atualizar a ordem
+      newQuestions.forEach((q, idx) => {
+        q.order = idx + 1;
+      });
+      setCampaign({ ...campaign, questions: newQuestions });
+    }
+  };
+
+  const moveQuestionDown = (questionId) => {
+    const index = campaign.questions.findIndex((q) => q.id === questionId);
+    if (index < campaign.questions.length - 1) {
+      const newQuestions = [...campaign.questions];
+      [newQuestions[index], newQuestions[index + 1]] = [newQuestions[index + 1], newQuestions[index]];
+      // Atualizar a ordem
+      newQuestions.forEach((q, idx) => {
+        q.order = idx + 1;
+      });
+      setCampaign({ ...campaign, questions: newQuestions });
+    }
+  };
+
+  const saveQuestions = () => {
+    // Salvar no localStorage
+    const campaigns = JSON.parse(localStorage.getItem('campaigns') || '[]');
+    const updatedCampaigns = campaigns.map((c) =>
+      c.id === campaign.id ? campaign : c
+    );
+    localStorage.setItem('campaigns', JSON.stringify(updatedCampaigns));
+    
+    // Tentar salvar no backend
+    api.updateCampaign(campaign.id, campaign).catch((error) => {
+      console.error('Error saving to backend:', error);
+    });
+    
+    alert('Perguntas salvas com sucesso!');
+  };
+
   const renderQuestionPreview = (question) => {
     switch (question.type) {
       case 'nps':
@@ -546,6 +588,26 @@ export default function CampaignDetail() {
                             </div>
                           )}
                         </div>
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => moveQuestionUp(question.id)}
+                            disabled={question.order === 1}
+                            className="h-8 w-8 p-0"
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => moveQuestionDown(question.id)}
+                            disabled={question.order === campaign.questions.length}
+                            className="h-8 w-8 p-0"
+                          >
+                            ↓
+                          </Button>
+                        </div>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -557,10 +619,15 @@ export default function CampaignDetail() {
                       </div>
                     </div>
                   ))}
-                  <Button onClick={addQuestion} className="w-full" variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar pergunta
-                  </Button>
+                  <div className="space-y-2">
+                    <Button onClick={addQuestion} className="w-full" variant="outline">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar pergunta
+                    </Button>
+                    <Button onClick={saveQuestions} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                      Salvar Alterações
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>

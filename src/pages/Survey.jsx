@@ -104,8 +104,19 @@ export default function Survey() {
 
   const renderQuestion = (question) => {
     const answer = answers[question.id];
+    
+    // Mapear tipos antigos para novos
+    const typeMap = {
+      'nps': 'NPS',
+      'stars': 'Estrelas',
+      'emotion': 'Emoção',
+      'emotion_scale': 'Escala de Emoção',
+      'like_dislike': 'Curtir / Não Curtir',
+    };
+    
+    const normalizedType = typeMap[question.type] || question.type;
 
-    switch (question.type) {
+    switch (normalizedType) {
       case 'NPS':
         return (
           <div className="space-y-4">
