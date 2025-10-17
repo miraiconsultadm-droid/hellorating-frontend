@@ -13,8 +13,10 @@ export default function Dashboard() {
     // Buscar dados do dashboard geral (todas as campanhas)
     const fetchDashboard = async () => {
       try {
-        const campaigns = await api.getCampaigns();
-        const responses = api.getResponses();
+        const [campaigns, responses] = await Promise.all([
+          api.getCampaigns(),
+          api.getResponses()
+        ]);
         
         // Calcular métricas agregadas de todas as campanhas
         const metrics = calculateDashboardMetrics(responses, campaigns);

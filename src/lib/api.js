@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://hellorating-backend.vercel.app';
 
 // Mock data
 const mockData = {
@@ -201,6 +201,16 @@ export const api = {
   getCampaigns: () => apiCall('/api/campaigns'),
   
   getCampaign: (id) => apiCall(`/api/campaigns/${id}`),
+  
+  updateCampaign: (id, data) => apiCall(`/api/campaigns/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  
+  createCampaign: (data) => apiCall(`/api/campaigns`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
   
   updateCampaign: (id, data) => apiCall(`/api/campaigns/${id}`, {
     method: 'PUT',
