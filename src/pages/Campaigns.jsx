@@ -77,26 +77,26 @@ export default function Campaigns() {
       // Atualizar estado
       setCampaigns([...campaigns, createdCampaign]);
       
+      // Limpar formulário e fechar modal
+      setCampaignData({
+        name: '',
+        niche: '',
+        mainMetric: 'NPS',
+        redirectEnabled: false,
+        redirectRule: 'promotores',
+        feedbackEnabled: false,
+        feedbackText: 'Obrigado pelo seu feedback! Sua opinião é muito importante para nós.',
+      });
+      setShowModal(false);
+
+      // Navegar para a campanha criada
+      navigate(`/campanhas/${createdCampaign.id}`);
+
     } catch (error) {
       console.error('Error creating campaign via API:', error);
       alert('Erro ao criar campanha. Verifique o console para detalhes.');
       return;
     }
-
-    // Limpar formulário e fechar modal
-    setCampaignData({
-      name: '',
-      niche: '',
-      mainMetric: 'NPS',
-      redirectEnabled: false,
-      redirectRule: 'promotores',
-      feedbackEnabled: false,
-      feedbackText: 'Obrigado pelo seu feedback! Sua opinião é muito importante para nós.',
-    });
-    setShowModal(false);
-
-     // Navegar para a campanha criada
-    navigate(`/campanhas/${createdCampaign.id}`);
   };
 
   if (loading) {
