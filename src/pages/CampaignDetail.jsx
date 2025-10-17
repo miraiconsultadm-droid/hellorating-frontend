@@ -362,34 +362,35 @@ export default function CampaignDetail() {
                 <CardTitle>Porcentagem NPS</CardTitle>
                 <CardDescription>Distribuição de Promotores, Passivos e Detratores</CardDescription>
               </CardHeader>
-              <CardContent>
-                {dashboardData && dashboardData.npsPercentage ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={dashboardData.npsPercentage}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={(entry) => `${entry.category}: ${entry.value}%`}
-                      >
-                        {dashboardData.npsPercentage.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    Nenhum dado disponível
-                  </div>
-                )}
-              </CardContent>
+	              <CardContent>
+	                {dashboardData && dashboardData.npsPercentage && dashboardData.npsPercentage.some(p => parseFloat(p.value) > 0) ? (
+	                  <ResponsiveContainer width="100%" height={300}>
+	                    <PieChart>
+	                      <Pie
+	                        data={dashboardData.npsPercentage.filter(p => parseFloat(p.value) > 0)}
+	                        cx="50%"
+	                        cy="50%"
+	                        innerRadius={60}
+	                        outerRadius={100}
+	                        fill="#8884d8"
+	                        paddingAngle={5}
+	                        dataKey="value"
+	                        labelLine={false}
+	                        label={(entry) => `${entry.category}: ${entry.value}%`}
+	                      >
+	                        {dashboardData.npsPercentage.filter(p => parseFloat(p.value) > 0).map((entry, index) => (
+	                          <Cell key={`cell-${index}`} fill={entry.color} />
+	                        ))}
+	                      </Pie>
+	                      <Tooltip />
+	                    </PieChart>
+	                  </ResponsiveContainer>
+	                ) : (
+	                  <div className="flex items-center justify-center h-[300px]">
+	                    <p className="text-gray-500">Sem dados de NPS para exibir.</p>
+	                  </div>
+	                )}
+	              </CardContent>
             </Card>
 
             {/* Gráfico de Barras - Notas NPS */}
