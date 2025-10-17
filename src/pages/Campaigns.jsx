@@ -53,9 +53,6 @@ export default function Campaigns() {
       return;
     }
 
-    // Gerar ID único para a campanha
-    const campaignId = Math.random().toString(36).substring(2, 15);
-
     // Obter perguntas sugeridas baseadas no nicho
     const suggestedQuestions = campaignData.niche && questionSuggestions[campaignData.niche]
       ? questionSuggestions[campaignData.niche].map((q, index) => ({
@@ -66,19 +63,25 @@ export default function Campaigns() {
       : [];
 
     const newCampaign = {
-      id: campaignId,
+      // O ID será gerado pelo backend
+      // id: campaignId,
       ...campaignData,
       googlePlaceId: company.placeId,
       questions: suggestedQuestions,
     };
 
-    // Salvar no localStorage (simulação)
-    const existingCampaigns = JSON.parse(localStorage.getItem('campaigns') || '[]');
-    existingCampaigns.push(newCampaign);
-    localStorage.setItem('campaigns', JSON.stringify(existingCampaigns));
-
-    // Atualizar estado
-    setCampaigns([...campaigns, newCampaign]);
+    // Salvar no backend
+    try {
+      const createdCampaign = await api.createCampaign(newCampaign);
+      
+      // Atualizar estado
+      setCampaigns([...campaigns, createdCampaign]);
+      
+    } catch (error) {
+      console.error('Error creating campaign via API:', error);
+      alert('Erro ao criar campanha. Verifique o console para detalhes.');
+      return;
+    }
 
     // Limpar formulário e fechar modal
     setCampaignData({
@@ -92,8 +95,8 @@ export default function Campaigns() {
     });
     setShowModal(false);
 
-    // Navegar para a campanha criada
-    navigate(`/campanhas/${campaignId}`);
+     // Navegar para a campanha criada
+    navigate(`/campanhas/${createdCampaign.id}`);
   };
 
   if (loading) {
