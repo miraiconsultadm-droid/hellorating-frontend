@@ -1,5 +1,6 @@
 // Função para calcular métricas do dashboard a partir das respostas
 export function calculateDashboardMetrics(responses, campaigns = []) {
+  console.log('calculateDashboardMetrics - Responses recebidas:', responses);
   if (responses.length === 0) {
     return {
       nps: 0,

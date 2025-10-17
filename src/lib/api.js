@@ -243,6 +243,7 @@ export const api = {
   
   getResponses: (campaignId = null) => {
     const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+    console.log('API - Respostas lidas do localStorage:', responses);
     if (campaignId) {
       return responses.filter(r => r.campaignId === campaignId);
     }
